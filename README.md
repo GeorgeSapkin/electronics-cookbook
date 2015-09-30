@@ -1,2 +1,2 @@
 # Electronics Cookbook
-Various Raspberry Pi and Arduino I2C tests
+Various Raspberry Pi and Arduino tests
