@@ -1,2 +1,2 @@
-# rpi2arduino-i2c
-Raspberry Pi to Arduino I2C communication test
+# Electronics Cookbook
+Various Raspberry Pi and Arduino I2C tests
