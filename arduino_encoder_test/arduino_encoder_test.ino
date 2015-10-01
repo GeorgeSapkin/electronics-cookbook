@@ -1,18 +1,30 @@
+#include "enc_state.h"
+
 // encoder signal has to be on interrupt pin 2 or 3 on Uno, etc.
-#define ENC_SIG_PIN 2
-#define BOUD        9600
+#define ENC_RIGHT_SIG_PIN 2
+#define ENC_LEFT_SIG_PIN  3
+#define BOUD              9600
 
 #define PRINT_DELAY 100
 #define ENC_DELAY   25000
 
-volatile long encCount = 0;
+volatile EncState rightState = { ENC_RIGHT_SIG_PIN, 0, 0, 0 };
+volatile EncState leftState  = { ENC_LEFT_SIG_PIN, 0, 0, 0 };
+
+// shared between all ISRs, since only one is active at a time
+volatile uint8_t prev;
 
 void setup() {
   Serial.begin(BOUD);
 
   attachInterrupt(
-    digitalPinToInterrupt(ENC_SIG_PIN),
-    onEnc,
+    digitalPinToInterrupt(ENC_LEFT_SIG_PIN),
+    onLeftEnc,
+    CHANGE);
+
+  attachInterrupt(
+    digitalPinToInterrupt(ENC_RIGHT_SIG_PIN),
+    onRightEnc,
     CHANGE);
 }
 
@@ -22,26 +34,32 @@ void loop() {
   if (millis() - time < PRINT_DELAY)
     return;
 
-  Serial.println(encCount);
+  Serial.print(leftState.count);
+  Serial.print(' ');
+  Serial.println(rightState.count);
   time = millis();
 }
 
-volatile unsigned long encTime   = 0;
-volatile uint8_t       encSignal = 0;
-volatile uint8_t       encPrev   = 0;
-
-void onEnc() {
+void onEnc(volatile EncState * encState) {
   // debounce interrupts
-  if (micros() - encTime < ENC_DELAY)
+  if (micros() - encState->time < ENC_DELAY)
     return;
 
-  encPrev   = encSignal;
+  prev = encState->sig;
   // read pin state directly from port D input pin register
-  encSignal = bitRead(PIND, ENC_SIG_PIN);
-  if (encPrev == encSignal)
+  encState->sig = bitRead(PIND, encState->pin);
+  if (prev == encState->sig)
     return;
 
-  encTime = micros();
+  encState->time = micros();
 
-  encCount++;
+  ++(encState->count);
+}
+
+void onRightEnc() {
+  onEnc(&rightState);
+}
+
+void onLeftEnc() {
+  onEnc(&leftState);
 }
